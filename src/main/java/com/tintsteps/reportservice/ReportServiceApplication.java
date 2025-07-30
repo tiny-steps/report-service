@@ -1,13 +1,13 @@
-package com.tinysteps.reportservice;
+package com.tintsteps.reportservice;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class Application {
+public class ReportServiceApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(Application.class, args);
+		SpringApplication.run(ReportServiceApplication.class, args);
 	}
 
 }

@@ -1,10 +1,10 @@
-package com.tinysteps.reportservice;
+package com.tintsteps.reportservice;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class ApplicationTests {
+class ReportServiceApplicationTests {
 
 	@Test
 	void contextLoads() {
