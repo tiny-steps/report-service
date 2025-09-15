@@ -1,6 +1,7 @@
 package com.tinysteps.reportservice.client;
 
 import com.tinysteps.reportservice.model.PatientDto;
+import com.tinysteps.reportservice.model.PatientServiceResponse;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.timelimiter.TimeLimiter;
@@ -51,7 +52,7 @@ public class PatientServiceClient {
                     String uri = patientServiceUrl + "/" + patientId;
                     log.info("Calling patient service: {}", uri);
                     
-                    PatientDto patient = webClient.get()
+                    PatientServiceResponse response = webClient.get()
                             .uri(uri)
                             .accept(MediaType.APPLICATION_JSON)
                             .retrieve()
@@ -70,12 +71,17 @@ public class PatientServiceClient {
                                 return clientResponse.createException().map(ex ->
                                     new RuntimeException("Patient service unavailable: " + clientResponse.statusCode(), ex));
                             })
-                            .bodyToMono(PatientDto.class)
+                            .bodyToMono(PatientServiceResponse.class)
                             .timeout(Duration.ofSeconds(timeoutSeconds))
                             .block();
 
-                    log.info("Successfully retrieved patient: {}", patientId);
-                    return Optional.ofNullable(patient);
+                    if (response != null && response.getData() != null) {
+                        log.info("Successfully retrieved patient: {}", patientId);
+                        return Optional.of(response.getData());
+                    } else {
+                        log.warn("Patient response is null or has no data for ID: {}", patientId);
+                        return Optional.empty();
+                    }
 
                 } catch (WebClientResponseException e) {
                     if (e.getStatusCode() == HttpStatus.NOT_FOUND) {

@@ -1,6 +1,7 @@
 package com.tinysteps.reportservice.client;
 
 import com.tinysteps.reportservice.model.UserDto;
+import com.tinysteps.reportservice.model.UserServiceResponse;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.timelimiter.TimeLimiter;
@@ -51,9 +52,10 @@ public class UserServiceClient {
                     String uri = userServiceUrl + "/" + userId;
                     log.info("Calling user service: {}", uri);
                     
-                    UserDto user = webClient.get()
+                    UserServiceResponse response = webClient.get()
                             .uri(uri)
                             .accept(MediaType.APPLICATION_JSON)
+                            .header("X-Internal-Secret", "internal-secret-key-2024")
                             .retrieve()
                             .onStatus(status -> status.equals(HttpStatus.NOT_FOUND), clientResponse -> {
                                 log.warn("User not found with id: {}", userId);
@@ -70,12 +72,17 @@ public class UserServiceClient {
                                 return clientResponse.createException().map(ex ->
                                     new RuntimeException("User service unavailable: " + clientResponse.statusCode(), ex));
                             })
-                            .bodyToMono(UserDto.class)
+                            .bodyToMono(UserServiceResponse.class)
                             .timeout(Duration.ofSeconds(timeoutSeconds))
                             .block();
 
-                    log.info("Successfully retrieved user: {}", userId);
-                    return Optional.ofNullable(user);
+                    if (response != null && response.getData() != null) {
+                        log.info("Successfully retrieved user: {}", userId);
+                        return Optional.of(response.getData());
+                    } else {
+                        log.warn("User response is null or has no data for ID: {}", userId);
+                        return Optional.empty();
+                    }
 
                 } catch (WebClientResponseException e) {
                     if (e.getStatusCode() == HttpStatus.NOT_FOUND) {

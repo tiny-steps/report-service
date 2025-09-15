@@ -21,6 +21,10 @@ public class AppointmentDto {
     private String patientName;
     private String doctorId;
     private String doctorName;
+    private String sessionTypeId;
+    private String sessionId; // This will map to sessionOfferingId from schedule service
+    private String sessionTypeName; // Name of the session type (e.g., "General Consultation")
+    private String sessionOfferingPrice; // Price of the specific session offering
     private String appointmentType;
     private LocalDate appointmentDate;
     private LocalTime startTime;
@@ -31,6 +35,7 @@ public class AppointmentDto {
     private String cancellationReason;
     private LocalDateTime checkedInAt;
     private Integer sessionDurationMinutes;
+    private String durationFormatted; // Formatted duration string (e.g., "30 minutes")
 
     /**
      * Converts from ScheduleServiceResponse.ScheduleAppointmentDto to AppointmentDto
@@ -41,6 +46,8 @@ public class AppointmentDto {
                 .appointmentNumber(scheduleDto.getAppointmentNumber())
                 .patientId(scheduleDto.getPatientId())
                 .doctorId(scheduleDto.getDoctorId())
+                .sessionTypeId(scheduleDto.getSessionTypeId())
+                .sessionId(scheduleDto.getSessionOfferingId())
                 .appointmentType(scheduleDto.getConsultationType())
                 .appointmentDate(scheduleDto.getAppointmentDate() != null ?
                     LocalDate.parse(scheduleDto.getAppointmentDate()) : null)
@@ -53,7 +60,7 @@ public class AppointmentDto {
                 .notes(scheduleDto.getNotes())
                 .cancellationReason(scheduleDto.getCancellationReason())
                 .checkedInAt(scheduleDto.getCheckedInAt() != null ?
-                    scheduleDto.getCheckedInAt().toLocalDateTime() : null)
+                        LocalDateTime.parse(scheduleDto.getCheckedInAt()) : null)
                 .sessionDurationMinutes(scheduleDto.getSessionDurationMinutes())
                 .build();
     }

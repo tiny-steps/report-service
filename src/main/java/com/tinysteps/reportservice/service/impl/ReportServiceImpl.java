@@ -3,6 +3,7 @@ package com.tinysteps.reportservice.service.impl;
 import com.tinysteps.reportservice.client.DoctorServiceClient;
 import com.tinysteps.reportservice.client.PatientServiceClient;
 import com.tinysteps.reportservice.client.ScheduleServiceClient;
+import com.tinysteps.reportservice.client.SessionServiceClient;
 import com.tinysteps.reportservice.client.UserServiceClient;
 import com.tinysteps.reportservice.entity.Report;
 import com.tinysteps.reportservice.model.*;
@@ -22,6 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +39,7 @@ public class ReportServiceImpl implements ReportService {
     private final PatientServiceClient patientServiceClient;
     private final DoctorServiceClient doctorServiceClient;
     private final UserServiceClient userServiceClient;
+    private final SessionServiceClient sessionServiceClient;
     private final PdfReportGenerator pdfReportGenerator;
     private final ExcelReportGenerator excelReportGenerator;
     private final KafkaTemplate<String, Map<String, Object>> kafkaTemplate;
@@ -146,28 +149,72 @@ public class ReportServiceImpl implements ReportService {
         try {
             // Fetch patient name
             if (appointment.getPatientId() != null) {
+                log.debug("Fetching patient details for patientId: {}", appointment.getPatientId());
                 patientServiceClient.getPatientById(appointment.getPatientId())
-                    .ifPresent(patient -> {
+                    .ifPresentOrElse(patient -> {
+                        log.debug("Found patient: {}, userId: {}", patient.getId(), patient.getUserId());
                         if (patient.getUserId() != null) {
                             userServiceClient.getUserById(patient.getUserId())
-                                .ifPresent(user -> appointment.setPatientName(user.getFullName()));
+                                .ifPresentOrElse(user -> {
+                                    String patientName = user.getFullName();
+                                    log.debug("Setting patient name: {}", patientName);
+                                    appointment.setPatientName(patientName);
+                                }, () -> log.warn("User not found for userId: {}", patient.getUserId()));
+                        } else {
+                            log.warn("Patient {} has no userId", patient.getId());
                         }
-                    });
+                    }, () -> log.warn("Patient not found for patientId: {}", appointment.getPatientId()));
             }
             
-            // Fetch doctor name
+            // Fetch doctor name - use doctor's name directly instead of going through user service
             if (appointment.getDoctorId() != null) {
+                log.debug("Fetching doctor details for doctorId: {}", appointment.getDoctorId());
                 doctorServiceClient.getDoctorById(appointment.getDoctorId())
-                    .ifPresent(doctor -> {
-                        if (doctor.getUserId() != null) {
-                            userServiceClient.getUserById(doctor.getUserId())
-                                .ifPresent(user -> appointment.setDoctorName(user.getFullName()));
-                        }
-                    });
+                    .ifPresentOrElse(doctor -> {
+                        String doctorName = doctor.getFullName();
+                        log.debug("Setting doctor name: {}", doctorName);
+                        appointment.setDoctorName(doctorName);
+                    }, () -> log.warn("Doctor not found for doctorId: {}", appointment.getDoctorId()));
+            }
+            
+            // Fetch session type name
+            if (appointment.getSessionTypeId() != null) {
+                log.debug("Fetching session type details for sessionTypeId: {}", appointment.getSessionTypeId());
+                sessionServiceClient.getSessionTypeById(appointment.getSessionTypeId())
+                    .ifPresentOrElse(sessionType -> {
+                        String sessionTypeName = sessionType.getName();
+                        log.debug("Setting session type name: {}", sessionTypeName);
+                        appointment.setSessionTypeName(sessionTypeName);
+                    }, () -> log.warn("Session type not found for sessionTypeId: {}", appointment.getSessionTypeId()));
+            }
+            
+            // Fetch session offering price
+            if (appointment.getSessionId() != null) {
+                log.debug("Fetching session offering details for sessionId: {}", appointment.getSessionId());
+                sessionServiceClient.getSessionOfferingById(appointment.getSessionId())
+                    .ifPresentOrElse(sessionOffering -> {
+                        String price = sessionOffering.getPrice() != null ? 
+                            "$" + sessionOffering.getPrice().toString() : "N/A";
+                        log.debug("Setting session offering price: {}", price);
+                        appointment.setSessionOfferingPrice(price);
+                    }, () -> log.warn("Session offering not found for sessionId: {}", appointment.getSessionId()));
+            }
+            
+            // Calculate and format duration
+            if (appointment.getStartTime() != null && appointment.getEndTime() != null) {
+                long minutes = ChronoUnit.MINUTES.between(appointment.getStartTime(), appointment.getEndTime());
+                String durationFormatted = minutes + " minutes";
+                log.debug("Calculated duration: {}", durationFormatted);
+                appointment.setDurationFormatted(durationFormatted);
+            } else if (appointment.getSessionDurationMinutes() != null) {
+                // Fallback to session duration if start/end times are not available
+                String durationFormatted = appointment.getSessionDurationMinutes() + " minutes";
+                log.debug("Using session duration: {}", durationFormatted);
+                appointment.setDurationFormatted(durationFormatted);
             }
             
         } catch (Exception e) {
-            log.warn("Failed to enhance appointment {} with names: {}", appointment.getId(), e.getMessage());
+            log.error("Failed to enhance appointment {} with names: {}", appointment.getId(), e.getMessage(), e);
         }
         
         return appointment;

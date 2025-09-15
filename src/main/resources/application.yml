@@ -67,6 +67,12 @@ integration:
     timeout-seconds: 10
     max-retries: 3
     enable-circuit-breaker: true
+  session-service:
+    session-types-url: http://ts-session-service/api/v1/session-types
+    session-offerings-url: http://ts-session-service/api/v1/sessions
+    timeout-seconds: 10
+    max-retries: 3
+    enable-circuit-breaker: true
 
 # Report configuration
 report:
@@ -92,6 +98,15 @@ resilience4j:
   circuitbreaker:
     instances:
       ts-schedule-service:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 5s
+        failure-rate-threshold: 50
+        event-consumer-buffer-size: 10
+      ts-session-service:
         register-health-indicator: true
         sliding-window-size: 10
         minimum-number-of-calls: 5
@@ -138,6 +153,15 @@ resilience4j:
           - org.springframework.web.reactive.function.client.WebClientRequestException
           - java.util.concurrent.TimeoutException
           - java.net.ConnectException
+      ts-session-service:
+        max-attempts: 3
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - org.springframework.web.reactive.function.client.WebClientRequestException
+          - java.util.concurrent.TimeoutException
+          - java.net.ConnectException
       ts-doctor-service:
         max-attempts: 3
         wait-duration: 1s
@@ -168,6 +192,9 @@ resilience4j:
   timelimiter:
     instances:
       ts-schedule-service:
+        timeout-duration: 10s
+        cancel-running-future: true
+      ts-session-service:
         timeout-duration: 10s
         cancel-running-future: true
       ts-doctor-service:

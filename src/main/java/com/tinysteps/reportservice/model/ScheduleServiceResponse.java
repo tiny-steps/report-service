@@ -5,7 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.ZonedDateTime; // Changed from LocalDateTime to ZonedDateTime
+import java.time.LocalDateTime; // Changed back from ZonedDateTime
 import java.util.List;
 
 /**
@@ -19,8 +19,7 @@ public class ScheduleServiceResponse {
     private int statusCode;
     private String status;
     private String message;
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSXXX")
-    private ZonedDateTime timestamp; // Changed from LocalDateTime to ZonedDateTime
+    private String timestamp; // Changed to String to avoid LocalDateTime parsing issues
     private DataWrapper data;
     private Object errors;
 
@@ -71,6 +70,7 @@ public class ScheduleServiceResponse {
         private String doctorId;
         private String patientId;
         private String sessionTypeId;
+        private String sessionOfferingId;
         private String practiceId;
         private String appointmentDate;
         private String startTime;
@@ -79,7 +79,7 @@ public class ScheduleServiceResponse {
         private String consultationType;
         private String notes;
         private String cancellationReason;
-        private ZonedDateTime checkedInAt; // Changed from LocalDateTime to ZonedDateTime
+        private String checkedInAt; // Changed to String to avoid LocalDateTime parsing issues
         private Integer sessionDurationMinutes;
     }
 }

@@ -1,6 +1,7 @@
 package com.tinysteps.reportservice.client;
 
 import com.tinysteps.reportservice.model.DoctorDto;
+import com.tinysteps.reportservice.model.DoctorServiceResponse;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.timelimiter.TimeLimiter;
@@ -51,9 +52,10 @@ public class DoctorServiceClient {
                     String uri = doctorServiceUrl + "/" + doctorId;
                     log.info("Calling doctor service: {}", uri);
                     
-                    DoctorDto doctor = webClient.get()
+                    DoctorServiceResponse response = webClient.get()
                             .uri(uri)
                             .accept(MediaType.APPLICATION_JSON)
+                            .header("X-Internal-Secret", "internal-secret-key-2024")
                             .retrieve()
                             .onStatus(status -> status.equals(HttpStatus.NOT_FOUND), clientResponse -> {
                                 log.warn("Doctor not found with id: {}", doctorId);
@@ -70,12 +72,17 @@ public class DoctorServiceClient {
                                 return clientResponse.createException().map(ex ->
                                     new RuntimeException("Doctor service unavailable: " + clientResponse.statusCode(), ex));
                             })
-                            .bodyToMono(DoctorDto.class)
+                            .bodyToMono(DoctorServiceResponse.class)
                             .timeout(Duration.ofSeconds(timeoutSeconds))
                             .block();
 
-                    log.info("Successfully retrieved doctor: {}", doctorId);
-                    return Optional.ofNullable(doctor);
+                    if (response != null && response.getData() != null) {
+                        log.info("Successfully retrieved doctor: {}", doctorId);
+                        return Optional.of(response.getData());
+                    } else {
+                        log.warn("Doctor response is null or has no data for ID: {}", doctorId);
+                        return Optional.empty();
+                    }
 
                 } catch (WebClientResponseException e) {
                     if (e.getStatusCode() == HttpStatus.NOT_FOUND) {

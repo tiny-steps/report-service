@@ -78,4 +78,20 @@ public class ResilienceConfig {
     public TimeLimiter userServiceTimeLimiter(TimeLimiterRegistry registry) {
         return registry.timeLimiter("ts-user-service");
     }
+    
+    // Session Service Resilience Components
+    @Bean
+    public CircuitBreaker sessionServiceCircuitBreaker(CircuitBreakerRegistry registry) {
+        return registry.circuitBreaker("ts-session-service");
+    }
+
+    @Bean
+    public Retry sessionServiceRetry(RetryRegistry registry) {
+        return registry.retry("ts-session-service");
+    }
+
+    @Bean
+    public TimeLimiter sessionServiceTimeLimiter(TimeLimiterRegistry registry) {
+        return registry.timeLimiter("ts-session-service");
+    }
 }
