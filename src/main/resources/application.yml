@@ -1,0 +1,195 @@
+server:
+  port: 8095
+
+spring:
+  application:
+    name: ts-report-service
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8081 # Auth service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/reports
+    username: postgres
+    password: root
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    hibernate:
+      ddl-auto: create
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: report-service-group
+      auto-offset-reset: earliest
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+# Kafka Topics Configuration
+kafka:
+  topics:
+    report-events: report-events
+
+# Eureka client configuration
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
+# Integration with other services
+integration:
+  schedule-service:
+    base-url: http://ts-schedule-service/api/v1/appointments
+    timeout-seconds: 10
+    max-retries: 3
+    enable-circuit-breaker: true
+  doctor-service:
+    base-url: http://ts-doctor-service/api/v1/doctors
+    timeout-seconds: 10
+    max-retries: 3
+    enable-circuit-breaker: true
+  patient-service:
+    base-url: http://ts-patient-service/api/v1/patients
+    timeout-seconds: 10
+    max-retries: 3
+    enable-circuit-breaker: true
+  user-service:
+    base-url: http://ts-user-service/api/v1/users
+    timeout-seconds: 10
+    max-retries: 3
+    enable-circuit-breaker: true
+
+# Report configuration
+report:
+  storage:
+    path: ./reports
+    retention-days: 30
+  download:
+    base-url: http://localhost:8095/api/v1/reports/download
+  formats:
+    - PDF
+    - EXCEL
+
+# Service configuration
+service:
+  internal-secret: "902ffc52f4ab670361e543008a5f8e86005edadfbc1df36f5cc375b433448aff"
+
+internal:
+  api:
+    secret: "902ffc52f4ab670361e543008a5f8e86005edadfbc1df36f5cc375b433448aff"
+
+# Resilience4j Configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      ts-schedule-service:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 5s
+        failure-rate-threshold: 50
+        event-consumer-buffer-size: 10
+      ts-doctor-service:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 5s
+        failure-rate-threshold: 50
+        event-consumer-buffer-size: 10
+      ts-patient-service:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 5s
+        failure-rate-threshold: 50
+        event-consumer-buffer-size: 10
+      ts-user-service:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 5s
+        failure-rate-threshold: 50
+        event-consumer-buffer-size: 10
+  retry:
+    instances:
+      ts-schedule-service:
+        max-attempts: 3
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - org.springframework.web.reactive.function.client.WebClientRequestException
+          - java.util.concurrent.TimeoutException
+          - java.net.ConnectException
+      ts-doctor-service:
+        max-attempts: 3
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - org.springframework.web.reactive.function.client.WebClientRequestException
+          - java.util.concurrent.TimeoutException
+          - java.net.ConnectException
+      ts-patient-service:
+        max-attempts: 3
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - org.springframework.web.reactive.function.client.WebClientRequestException
+          - java.util.concurrent.TimeoutException
+          - java.net.ConnectException
+      ts-user-service:
+        max-attempts: 3
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - org.springframework.web.reactive.function.client.WebClientRequestException
+          - java.util.concurrent.TimeoutException
+          - java.net.ConnectException
+  timelimiter:
+    instances:
+      ts-schedule-service:
+        timeout-duration: 10s
+        cancel-running-future: true
+      ts-doctor-service:
+        timeout-duration: 10s
+        cancel-running-future: true
+      ts-patient-service:
+        timeout-duration: 10s
+        cancel-running-future: true
+      ts-user-service:
+        timeout-duration: 10s
+        cancel-running-future: true
+
+# Management endpoints for monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,circuitbreakers,retries
+  endpoint:
+    health:
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true
+nabled: true
