@@ -39,6 +39,9 @@ public class Report {
     @Column(nullable = false)
     private String userId;
 
+    @Column
+    private String branchId; // Can store "all" for all branches or specific branchId
+
     @Column(nullable = false)
     private LocalDateTime generatedAt;
 

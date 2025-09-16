@@ -74,20 +74,37 @@ public class ScheduleServiceClient {
                     String uri = uriBuilder.toUriString();
                     log.info("Calling schedule service: {}", uri);
 
-                    // Always deserialize into wrapper DTO
+                    // Use reactive approach with proper timeout and fallback handling
                     String rawResponse = webClient.get()
                         .uri(uri)
                         .accept(MediaType.APPLICATION_JSON)
                         .retrieve()
                         .bodyToMono(String.class)
                         .timeout(Duration.ofSeconds(timeoutSeconds))
+                        .onErrorReturn(ex -> {
+                            if (ex instanceof java.util.concurrent.TimeoutException) {
+                                log.warn("Timeout occurred while calling schedule service: {}", uri);
+                                return true;
+                            }
+                            return false;
+                        }, "")
+                        .doOnError(ex -> log.error("Error calling schedule service: {}", ex.getMessage(), ex))
                         .block();
+
                     log.info("Raw schedule service response: {}", rawResponse);
 
+                    if (rawResponse == null || rawResponse.isEmpty()) {
+                        log.warn("Empty or null response from schedule service");
+                        return Collections.emptyList();
+                    }
+
                     ScheduleServiceResponse response = null;
-                    if (rawResponse != null && !rawResponse.isEmpty()) {
+                    try {
                         response = com.fasterxml.jackson.databind.json.JsonMapper.builder().build()
                             .readValue(rawResponse, ScheduleServiceResponse.class);
+                    } catch (Exception e) {
+                        log.error("Failed to parse schedule service response: {}", e.getMessage(), e);
+                        return Collections.emptyList();
                     }
 
                     if (response != null && response.getData() != null && response.getData().getContent() != null) {
@@ -96,7 +113,7 @@ public class ScheduleServiceClient {
                             .map(AppointmentDto::fromScheduleAppointment)
                             .toList();
                     } else {
-                        log.warn("No appointments found or response is null");
+                        log.warn("No appointments found or response data is null");
                         return Collections.emptyList();
                     }
 

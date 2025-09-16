@@ -62,14 +62,39 @@ public class SessionServiceClient {
                     String uri = sessionTypesUrl + "/" + sessionTypeId;
                     log.debug("Calling session service for session type: {}", uri);
 
-                    SessionTypeDto sessionType = webClient.get()
+                    // Log raw response before deserialization with timeout handling
+                    String rawResponse = webClient.get()
                         .uri(uri)
                         .accept(MediaType.APPLICATION_JSON)
                         .header("X-Internal-Secret", internalApiSecret)
                         .retrieve()
-                        .bodyToMono(SessionTypeDto.class)
+                        .bodyToMono(String.class)
                         .timeout(Duration.ofSeconds(timeoutSeconds))
+                        .onErrorReturn(ex -> {
+                            if (ex instanceof java.util.concurrent.TimeoutException) {
+                                log.warn("Timeout occurred while calling session service for session type: {}", uri);
+                                return true;
+                            }
+                            return false;
+                        }, "")
+                        .doOnError(ex -> log.error("Error calling session service for session type: {}", ex.getMessage(), ex))
                         .block();
+                    log.info("Raw session type response for ID {}: {}", sessionTypeId, rawResponse);
+
+                    if (rawResponse == null || rawResponse.isEmpty()) {
+                        log.warn("Empty or null response from session service for session type ID: {}", sessionTypeId);
+                        return Optional.empty();
+                    }
+
+                    // Deserialize directly into SessionTypeDto since the response is not wrapped
+                    SessionTypeDto sessionType = null;
+                    try {
+                        sessionType = com.fasterxml.jackson.databind.json.JsonMapper.builder().build()
+                            .readValue(rawResponse, SessionTypeDto.class);
+                    } catch (Exception e) {
+                        log.error("Failed to parse session type response: {}", e.getMessage(), e);
+                        return Optional.empty();
+                    }
 
                     if (sessionType != null) {
                         log.debug("Successfully retrieved session type: {}", sessionTypeId);
@@ -104,29 +129,39 @@ public class SessionServiceClient {
                     String uri = sessionOfferingsUrl + "/" + sessionOfferingId;
                     log.debug("Calling session service for session offering: {}", uri);
 
-                    SessionOfferingDto sessionOffering = webClient.get()
-                            .uri(uri)
-                            .accept(MediaType.APPLICATION_JSON)
-                            .header("X-Internal-Secret", internalApiSecret)
-                            .retrieve()
-                            .onStatus(status -> status.equals(HttpStatus.NOT_FOUND), clientResponse -> {
-                                log.warn("Session offering not found with id: {}", sessionOfferingId);
-                                return clientResponse.createException().map(ex ->
-                                    new RuntimeException("Session offering not found", ex));
-                            })
-                            .onStatus(status -> status.is4xxClientError(), clientResponse -> {
-                                log.error("Client error calling session service: {}", clientResponse.statusCode());
-                                return clientResponse.createException().map(ex ->
-                                    new RuntimeException("Client error: " + clientResponse.statusCode(), ex));
-                            })
-                            .onStatus(status -> status.is5xxServerError(), clientResponse -> {
-                                log.error("Server error from session service: {}", clientResponse.statusCode());
-                                return clientResponse.createException().map(ex ->
-                                    new RuntimeException("Session service unavailable: " + clientResponse.statusCode(), ex));
-                            })
-                            .bodyToMono(SessionOfferingDto.class)
-                            .timeout(Duration.ofSeconds(timeoutSeconds))
-                            .block();
+                    // Log raw response before deserialization with timeout handling
+                    String rawResponse = webClient.get()
+                        .uri(uri)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("X-Internal-Secret", internalApiSecret)
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .timeout(Duration.ofSeconds(timeoutSeconds))
+                        .onErrorReturn(ex -> {
+                            if (ex instanceof java.util.concurrent.TimeoutException) {
+                                log.warn("Timeout occurred while calling session service for session offering: {}", uri);
+                                return true;
+                            }
+                            return false;
+                        }, "")
+                        .doOnError(ex -> log.error("Error calling session service for session offering: {}", ex.getMessage(), ex))
+                        .block();
+                    log.info("Raw session offering response for ID {}: {}", sessionOfferingId, rawResponse);
+
+                    if (rawResponse == null || rawResponse.isEmpty()) {
+                        log.warn("Empty or null response from session service for session offering ID: {}", sessionOfferingId);
+                        return Optional.empty();
+                    }
+
+                    // Deserialize directly into SessionOfferingDto since the response is not wrapped
+                    SessionOfferingDto sessionOffering = null;
+                    try {
+                        sessionOffering = com.fasterxml.jackson.databind.json.JsonMapper.builder().build()
+                            .readValue(rawResponse, SessionOfferingDto.class);
+                    } catch (Exception e) {
+                        log.error("Failed to parse session offering response: {}", e.getMessage(), e);
+                        return Optional.empty();
+                    }
 
                     if (sessionOffering != null) {
                         log.debug("Successfully retrieved session offering: {}", sessionOfferingId);
