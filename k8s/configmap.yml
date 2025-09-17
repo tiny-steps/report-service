@@ -7,3 +7,5 @@ data:
   SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER-URI: "http://ts-auth-service:8081"
   SPRING_DATASOURCE_URL: "jdbc:postgresql://postgresql.infrastructure.svc.cluster.local:5432/report_service"
   EUREKA_CLIENT_SERVICE-URL_DEFAULTZONE: "http://ts-service-registry:8761/eureka/"
+  SPRING_KAFKA_BOOTSTRAP-SERVERS: "kafka.infrastructure.svc.cluster.local:9092"
+  KAFKA_TOPICS_REPORT-EVENTS: "report-events"
