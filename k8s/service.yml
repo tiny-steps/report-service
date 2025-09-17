@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ts-report-service
+spec:
+  type: ClusterIP
+  selector:
+    app: ts-report-service
+  ports:
+    - protocol: TCP
+      port: 8095
+      targetPort: 8095

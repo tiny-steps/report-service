@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ts-report-service-deployment
+  labels:
+    app: ts-report-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ts-report-service
+  template:
+    metadata:
+      labels:
+        app: ts-report-service
+    spec:
+      containers:
+        - name: ts-report-service
+          image: tinystepsd3v/ts-report-service # CORRECTED: Placeholder name now matches ci.yml
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-Xms128m -Xmx256m"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          ports:
+            - containerPort: 8095
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8092
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8092
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          envFrom:
+            - configMapRef:
+                name: ts-report-service-config
+            - secretRef:
+                name: ts-report-service-secret # CORRECTED: Name now matches secret.yml
