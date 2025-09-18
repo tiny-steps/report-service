@@ -33,7 +33,9 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
-                        // All requests must be authenticated
+                        // Health endpoints should be accessible without authentication
+                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                        // All other requests must be authenticated
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
@@ -58,7 +60,7 @@ public class SecurityConfig {
         converter.setJwtGrantedAuthoritiesConverter(jwt -> {
             JwtGrantedAuthoritiesConverter defaultConverter = new JwtGrantedAuthoritiesConverter();
             Collection<GrantedAuthority> authorities = defaultConverter.convert(jwt);
-            
+
             // Extract custom roles from 'role' claim
             List<String> roles = jwt.getClaimAsStringList("role");
             if (roles != null) {
@@ -66,7 +68,7 @@ public class SecurityConfig {
                         .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
                         .forEach(authorities::add);
             }
-            
+
             return authorities;
         });
         return converter;
