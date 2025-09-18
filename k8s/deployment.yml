@@ -32,7 +32,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /actuator/health
-              port: 8092
+              port: 8095
             initialDelaySeconds: 60
             periodSeconds: 30
             timeoutSeconds: 10
@@ -40,7 +40,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /actuator/health
-              port: 8092
+              port: 8095
             initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
